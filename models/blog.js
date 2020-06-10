@@ -4,17 +4,6 @@ const mongoose = require('mongoose')
 mongoose.set('useFindAndModify', false)
 mongoose.set('useCreateIndex', true)
 
-const mongoUrl = process.env.MONGODB_URI
-console.log('connecting to', mongoUrl)
-
-mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('connected to MongoDB')
-  })
-  .catch((error) => {
-    console.log('error connecting to MongoDB:', error.message)
-  })
-
 const blogSchema = mongoose.Schema({
   title: String,
   author: String,
