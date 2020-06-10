@@ -123,3 +123,23 @@ describe('most blogs', () => {
     })
   })
 })
+
+describe('most likes', () => {
+  test('most liked blog', () => {
+    expect(listHelper.mostLikes(blogs)).toEqual({
+      author: 'Edsger W. Dijkstra',
+      likes: 12
+    })
+  })
+
+  test('most liked blog an emply blog list', () => {
+    expect(listHelper.mostLikes([])).toEqual(null)
+  })
+
+  test('most liked blog of a blog list with one item', () => {
+    expect(listHelper.mostLikes(listWithOneBlog)).toEqual({
+      author: 'Edsger W. Dijkstra',
+      likes: 5
+    })
+  })
+})
