@@ -1,0 +1,9 @@
+POST http://localhost:3003/api/blogs
+Content-Type: application/json
+
+{
+  "title": "Alibaba taps international influencers to sell more globally",
+  "author": "Rita Liao",
+  "url": "https://techcrunch.com/2020/06/09/alibaba-aliexpress-influencer-recruitment/",
+  "likes": 9
+}
