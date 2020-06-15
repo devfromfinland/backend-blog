@@ -396,14 +396,10 @@ describe('Saving to and getting initial users from database', () => {
     done()  // fix bug "Jest has detected he following 1 open handle potentially keeping Jest from exiting"
   })
 
-  test('Test15b: there are two initial users', async () => {
+  test('Test15b: there are two initial users and one of the usernames is `viet`', async () => {
     const users = await helper.usersInDb()
     // console.log('users', users)
     expect(users.length).toBe(2)
-  })
-
-  test('Test15c: User viet is existed', async () => {
-    const users = await helper.usersInDb()
     const usernames = users.map(user => user.username)
     expect(usernames).toContain('viet')
   })
@@ -421,14 +417,15 @@ describe('Saving to and getting initial users from database', () => {
       .post('/api/users')
       .send(newUser)
       .expect(200)
+      .expect('Content-Type', /application\/json/)
 
     const usersAfter = await helper.usersInDb()
     const usernames = usersAfter.map(user => user.username)
     expect(usersAfter.length).toBe(usersBefore.length + 1)
-    expect(usernames).toContain('newUser')
+    expect(usernames).toContain(newUser.username)
   })
 
-  test('Test15e: Create new user with duplicated username', async () => {
+  test('Test16a: Create new user with duplicated username', async () => {
     const usersBefore = await helper.usersInDb()
 
     const newUser = {
@@ -437,16 +434,19 @@ describe('Saving to and getting initial users from database', () => {
       password: '12345678'
     }
 
-    await api
+    const result = await api
       .post('/api/users')
       .send(newUser)
       .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('`username` to be unique')
 
     const usersAfter = await helper.usersInDb()
     expect(usersAfter.length).toBe(usersBefore.length)
   })
 
-  test('Test15f: Create new user with too short username', async () => {
+  test('Test16b: Create new user with too short username', async () => {
     const usersBefore = await helper.usersInDb()
 
     const newUser = {
@@ -455,28 +455,52 @@ describe('Saving to and getting initial users from database', () => {
       password: '12345678'
     }
 
-    await api
+    const result = await api
       .post('/api/users')
       .send(newUser)
       .expect(400)
+
+    expect(result.body.error).toContain('is shorter than the minimum allowed length')
 
     const usersAfter = await helper.usersInDb()
     expect(usersAfter.length).toBe(usersBefore.length)
   })
 
-  test('Test15g: Create new user with too short password', async () => {
+  test('Test16c: Create new user with too short password', async () => {
     const usersBefore = await helper.usersInDb()
 
     const newUser = {
-      username: 'viet',
+      username: 'newUser',
       name: 'New User',
       password: '12'
     }
 
-    await api
+    const result = await api
       .post('/api/users')
       .send(newUser)
       .expect(400)
+
+    expect(result.body.error).toContain('is shorter than the minimum allowed length')
+
+    const usersAfter = await helper.usersInDb()
+    expect(usersAfter.length).toBe(usersBefore.length)
+  })
+
+  test('Test16d: Create new user with missing password field', async () => {
+    const usersBefore = await helper.usersInDb()
+
+    const newUser = {
+      username: 'newUser',
+      name: 'New User',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    expect(result.body.error).toContain('content missing')
+    console.log('error', result.body.error)
 
     const usersAfter = await helper.usersInDb()
     expect(usersAfter.length).toBe(usersBefore.length)
