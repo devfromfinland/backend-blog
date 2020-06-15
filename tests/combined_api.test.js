@@ -505,6 +505,51 @@ describe('Saving to and getting initial users from database', () => {
     const usersAfter = await helper.usersInDb()
     expect(usersAfter.length).toBe(usersBefore.length)
   })
+
+  test('Test18a: Login with correct username and password', async (done) => {
+    // expect code 200
+    const loginInfo = {
+      username: 'viet',
+      password: '12345678'
+    }
+
+    await api
+      .post('/api/login')
+      .send(loginInfo)
+      .expect(200)
+
+    done()
+  })
+
+  test('Test18b: Login with correct username but wrong pwd', async (done) => {
+    // expect 401 Unauthorized
+    const loginInfo = {
+      username: 'viet',
+      password: '12345'
+    }
+
+    await api
+      .post('/api/login')
+      .send(loginInfo)
+      .expect(401)
+
+    done()
+  })
+
+  test('Test18c: Login with incorrect username', async (done) => {
+    // expect 401 Unauthorized
+    const loginInfo = {
+      username: 'something',
+      password: '12345678'
+    }
+
+    await api
+      .post('/api/login')
+      .send(loginInfo)
+      .expect(401)
+
+    done()
+  })
 })
 
 afterAll(async () => {
