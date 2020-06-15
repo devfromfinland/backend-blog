@@ -1,21 +1,23 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
+const bcrypt = require('bcrypt')
 const app = require('../app')
 const api = supertest(app)
 
+const User = require('../models/user')
 const Blog = require('../models/blog')
 const helper = require('./test_helper')
 
-beforeEach(async () => {
-  await Blog.deleteMany({})
+describe('Saving and getting initial blogs to database', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
 
-  for (let i = 0; i < helper.initialBlogs.length; i++) {
-    let blogOjbect = new Blog(helper.initialBlogs[i])
-    await blogOjbect.save()
-  }
-})
+    const blogObjects = helper.initialBlogs
+      .map(blog => new Blog(blog))
+    const promiseArray = blogObjects.map(blog => blog.save())
+    await Promise.all(promiseArray)
+  })
 
-describe('Saving and getting initial data to database', () => {
   test('Test08a: blogs are returned as json', async () => {
     await api
       .get('/api/blogs')
@@ -54,6 +56,15 @@ describe('Saving and getting initial data to database', () => {
 })
 
 describe('Adding a new blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    const blogObjects = helper.initialBlogs
+      .map(blog => new Blog(blog))
+    const promiseArray = blogObjects.map(blog => blog.save())
+    await Promise.all(promiseArray)
+  })
+
   test('Test10a: add a new blog with proper data fields', async () => {
     const newBlog = {
       title: 'Test 2',
@@ -196,6 +207,15 @@ describe('Adding a new blog', () => {
 })
 
 describe('Viewing a specific blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    const blogObjects = helper.initialBlogs
+      .map(blog => new Blog(blog))
+    const promiseArray = blogObjects.map(blog => blog.save())
+    await Promise.all(promiseArray)
+  })
+
   test('View a normal blog', async () => {
     const blogsData = await helper.blogsInDb()
     // console.log('blogs Data', blogsData)
@@ -232,6 +252,15 @@ describe('Viewing a specific blog', () => {
 })
 
 describe('Delete a specific blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    const blogObjects = helper.initialBlogs
+      .map(blog => new Blog(blog))
+    const promiseArray = blogObjects.map(blog => blog.save())
+    await Promise.all(promiseArray)
+  })
+
   test('Delete a normal blog', async () => {
     const blogsDataBefore = await helper.blogsInDb()
     const firstBlog = blogsDataBefore[0]
@@ -257,6 +286,15 @@ describe('Delete a specific blog', () => {
 })
 
 describe('Updating a blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    const blogObjects = helper.initialBlogs
+      .map(blog => new Blog(blog))
+    const promiseArray = blogObjects.map(blog => blog.save())
+    await Promise.all(promiseArray)
+  })
+
   test('Update blog with valid data', async () => {
     const blogsDataBefore = await helper.blogsInDb()
     const firstBlog = blogsDataBefore[0]
@@ -334,6 +372,114 @@ describe('Updating a blog', () => {
 
     const blogsDataCurrent = await helper.blogsInDb()
     expect(blogsDataCurrent.length).toBe(helper.initialBlogs.length)
+  })
+})
+
+describe('Saving to and getting initial users from database', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('12345678', 10)
+    const user = new User({ username: 'root', passwordHash, name: 'Admin' })
+    await user.save()
+
+    const passwordHash2 = await bcrypt.hash('12345678', 10)
+    const user2 = new User({ username: 'viet', passwordHash: passwordHash2, name: 'Viet Phan' })
+    await user2.save()
+  })
+
+  test('Test15a: users are returned as json', async (done) => {
+    await api
+      .get('/api/users')
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+    done()  // fix bug "Jest has detected he following 1 open handle potentially keeping Jest from exiting"
+  })
+
+  test('Test15b: there are two initial users', async () => {
+    const users = await helper.usersInDb()
+    // console.log('users', users)
+    expect(users.length).toBe(2)
+  })
+
+  test('Test15c: User viet is existed', async () => {
+    const users = await helper.usersInDb()
+    const usernames = users.map(user => user.username)
+    expect(usernames).toContain('viet')
+  })
+
+  test('Test15d: Create new user with valid data', async () => {
+    const usersBefore = await helper.usersInDb()
+
+    const newUser = {
+      username: 'newUser',
+      name: 'New User',
+      password: '12345678'
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(200)
+
+    const usersAfter = await helper.usersInDb()
+    const usernames = usersAfter.map(user => user.username)
+    expect(usersAfter.length).toBe(usersBefore.length + 1)
+    expect(usernames).toContain('newUser')
+  })
+
+  test('Test15e: Create new user with duplicated username', async () => {
+    const usersBefore = await helper.usersInDb()
+
+    const newUser = {
+      username: 'viet',
+      name: 'New User',
+      password: '12345678'
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    const usersAfter = await helper.usersInDb()
+    expect(usersAfter.length).toBe(usersBefore.length)
+  })
+
+  test('Test15f: Create new user with too short username', async () => {
+    const usersBefore = await helper.usersInDb()
+
+    const newUser = {
+      username: 'vi',
+      name: 'New User',
+      password: '12345678'
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    const usersAfter = await helper.usersInDb()
+    expect(usersAfter.length).toBe(usersBefore.length)
+  })
+
+  test('Test15g: Create new user with too short password', async () => {
+    const usersBefore = await helper.usersInDb()
+
+    const newUser = {
+      username: 'viet',
+      name: 'New User',
+      password: '12'
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    const usersAfter = await helper.usersInDb()
+    expect(usersAfter.length).toBe(usersBefore.length)
   })
 })
 
