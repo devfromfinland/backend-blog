@@ -8,16 +8,53 @@ const User = require('../models/user')
 const Blog = require('../models/blog')
 const helper = require('./test_helper')
 
+const doLogin = async (username) => {
+  const credentials = {
+    username: username,
+    password: '12345678'
+  }
+
+  const res = await api
+    .post('/api/login')
+    .send(credentials)
+    .expect(200)
+
+  return res.body
+}
+
+const getUser = async (username) => {
+  const response = await api
+    .get(`/api/users/${username}`)
+
+  return response.body[0]
+}
+
+beforeEach(async () => {
+  // init 2 users (root and viet) to database
+  await User.deleteMany({})
+  const passwordHash = await bcrypt.hash('12345678', 10)
+  const user = new User({ username: 'root', passwordHash, name: 'Admin' })
+  await user.save()
+  const passwordHash2 = await bcrypt.hash('12345678', 10)
+  const user2 = new User({ username: 'viet', passwordHash: passwordHash2, name: 'Viet Phan' })
+  let savedUser2 = await user2.save()
+  // console.log('first id', savedUser2.id)
+
+  // init 6 blogs to database, and assign user 'viet' as the owner of all 6 blogs
+  await Blog.deleteMany({})
+  const blogObjects = helper.initialBlogs
+    .map(blog => new Blog({ ...blog, user: savedUser2._id }))
+  const promiseBlogsArray = blogObjects.map(blog => blog.save())
+  await Promise.all(promiseBlogsArray)
+
+  // assign all 6 blogs to user 'viet' and update
+  const blogIds = (await helper.blogsInDb()).map(blog => blog.id)
+  savedUser2.blogs = blogIds
+  await savedUser2.save()
+  // console.log('after update id', savedUser3.id)
+})
+
 describe('Saving and getting initial blogs to database', () => {
-  beforeEach(async () => {
-    await Blog.deleteMany({})
-
-    const blogObjects = helper.initialBlogs
-      .map(blog => new Blog(blog))
-    const promiseArray = blogObjects.map(blog => blog.save())
-    await Promise.all(promiseArray)
-  })
-
   test('Test08a: blogs are returned as json', async () => {
     await api
       .get('/api/blogs')
@@ -56,16 +93,38 @@ describe('Saving and getting initial blogs to database', () => {
 })
 
 describe('Adding a new blog', () => {
-  beforeEach(async () => {
-    await Blog.deleteMany({})
+  test('Test10a: add a new blog with proper data fields and authorization', async () => {
+    const login = await doLogin('root')
+    // console.log('login', login)
 
-    const blogObjects = helper.initialBlogs
-      .map(blog => new Blog(blog))
-    const promiseArray = blogObjects.map(blog => blog.save())
-    await Promise.all(promiseArray)
+    const newBlog = {
+      title: 'Test 2',
+      author: 'Steve Job',
+      url: 'https://test.com/steve',
+      likes: 9
+    }
+
+    const res = await api
+      .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
+      .send(newBlog)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+
+    const savedBlog = res.body
+    const user = await getUser(login.username)
+    // console.log('savedBlog', savedBlog)
+    // console.log('root user', user)
+    expect(savedBlog.user).toEqual(user.id)
+    expect(user.blogs).toContain(savedBlog.id)
+
+    const blogs = await helper.blogsInDb()
+    const titles = blogs.map(blog => blog.title)
+    expect(blogs).toHaveLength(helper.initialBlogs.length + 1)
+    expect(titles).toContain('Test 2')
   })
 
-  test('Test10a: add a new blog with proper data fields', async () => {
+  test('Test10b: add a new blog without authorization', async () => {
     const newBlog = {
       title: 'Test 2',
       author: 'Steve Job',
@@ -76,23 +135,19 @@ describe('Adding a new blog', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
-      .expect(200)
-      .expect('Content-Type', /application\/json/)
+      .expect(401)
 
     const response = await api.get('/api/blogs')
-    const titles = response.body.map(r => r.title)
-
-    expect(response.body).toHaveLength(helper.initialBlogs.length + 1)
-    expect(titles).toContain(
-      'Test 2'
-    )
+    expect(response.body).toHaveLength(helper.initialBlogs.length)
   })
 
-  test('Test10b: add a new blog with an undefined props', async () => {
+  test('Test10c: add a new blog with an undefined props', async () => {
+    const login = await doLogin('root')
     let newBlog
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(400)
 
@@ -101,6 +156,8 @@ describe('Adding a new blog', () => {
   })
 
   test('Test11: add a new blog with missing likes property', async () => {
+    const login = await doLogin('root')
+
     const newBlog = {
       title: 'Blog with missing likes property',
       author: 'Viet Phan',
@@ -109,6 +166,7 @@ describe('Adding a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(200)
       .expect('Content-Type', /application\/json/)
@@ -123,6 +181,8 @@ describe('Adding a new blog', () => {
   })
 
   test('Test12a: add a new blog with missing title', async () => {
+    const login = await doLogin('root')
+
     const newBlog = {
       url: 'https://test.com/no-title',
       author: 'Viet Phan',
@@ -131,6 +191,7 @@ describe('Adding a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(400)
 
@@ -139,6 +200,7 @@ describe('Adding a new blog', () => {
   })
 
   test('Test12b: add a new blog with missing url', async () => {
+    const login = await doLogin('root')
     const newBlog = {
       title: 'Blog without url',
       author: 'Viet Phan',
@@ -147,6 +209,7 @@ describe('Adding a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(400)
 
@@ -155,6 +218,7 @@ describe('Adding a new blog', () => {
   })
 
   test('TestExtra1: add a new blog too short url', async () => {
+    const login = await doLogin('root')
     const newBlog = {
       title: 'Blog without invalid url',
       author: 'Viet Phan',
@@ -164,6 +228,7 @@ describe('Adding a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(400)
 
@@ -172,6 +237,7 @@ describe('Adding a new blog', () => {
   })
 
   test('TestExtra2: add a new blog too short title', async () => {
+    const login = await doLogin('root')
     const newBlog = {
       title: 'B',
       author: 'Viet Phan',
@@ -181,6 +247,7 @@ describe('Adding a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(400)
 
@@ -189,6 +256,7 @@ describe('Adding a new blog', () => {
   })
 
   test('TestExtra3: add a new blog with a existing url', async () => {
+    const login = await doLogin('root')
     const newBlog = {
       title: 'Same link but different tittle',
       author: 'Robert C. Martin',
@@ -198,6 +266,7 @@ describe('Adding a new blog', () => {
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${login.token}`)
       .send(newBlog)
       .expect(400)
 
@@ -207,15 +276,6 @@ describe('Adding a new blog', () => {
 })
 
 describe('Viewing a specific blog', () => {
-  beforeEach(async () => {
-    await Blog.deleteMany({})
-
-    const blogObjects = helper.initialBlogs
-      .map(blog => new Blog(blog))
-    const promiseArray = blogObjects.map(blog => blog.save())
-    await Promise.all(promiseArray)
-  })
-
   test('View a normal blog', async () => {
     const blogsData = await helper.blogsInDb()
     // console.log('blogs Data', blogsData)
@@ -228,8 +288,12 @@ describe('Viewing a specific blog', () => {
       .expect(200)  // OK
       .expect('Content-Type', /application\/json/)
 
+    const theBlog = { ...result.body, user: result.body.user.id }
     // console.log('body', result.body)
-    expect(result.body).toEqual(firstBlog)
+    // console.log('theBlog', theBlog)
+    // console.log(typeof theBlog.user, typeof firstBlog.user)
+
+    expect(JSON.stringify(theBlog)).toEqual(JSON.stringify(firstBlog))
   })
 
   test('View a blog which was already deleted', async () => {
@@ -252,20 +316,29 @@ describe('Viewing a specific blog', () => {
 })
 
 describe('Delete a specific blog', () => {
-  beforeEach(async () => {
-    await Blog.deleteMany({})
+  test('Delete a normal blog with wrong authorization', async () => {
+    const login = await doLogin('root')
 
-    const blogObjects = helper.initialBlogs
-      .map(blog => new Blog(blog))
-    const promiseArray = blogObjects.map(blog => blog.save())
-    await Promise.all(promiseArray)
-  })
-
-  test('Delete a normal blog', async () => {
     const blogsDataBefore = await helper.blogsInDb()
     const firstBlog = blogsDataBefore[0]
     await api
       .delete(`/api/blogs/${firstBlog.id}`)
+      .set('Authorization', `bearer ${login.token}`)
+      .expect(401)  // No Content
+
+    const blogsDataCurrent = await helper.blogsInDb()
+    // console.log('blogsData 1', blogsDataCurrent)
+    expect(blogsDataCurrent.length).toBe(helper.initialBlogs.length)
+  })
+
+  test('Delete a normal blog with correct authorization', async () => {
+    const login = await doLogin('viet')
+
+    const blogsDataBefore = await helper.blogsInDb()
+    const firstBlog = blogsDataBefore[0]
+    await api
+      .delete(`/api/blogs/${firstBlog.id}`)
+      .set('Authorization', `bearer ${login.token}`)
       .expect(204)  // No Content
 
     const blogsDataCurrent = await helper.blogsInDb()
@@ -274,9 +347,11 @@ describe('Delete a specific blog', () => {
   })
 
   test('Delete a blog which has a wrong id', async () => {
+    const login = await doLogin('viet')
     const wrongId = '123'
     await api
       .delete(`/api/blogs/${wrongId}`)
+      .set('Authorization', `bearer ${login.token}`)
       .expect(400)  // Bad Request
 
     const blogsData = await helper.blogsInDb()
@@ -286,16 +361,8 @@ describe('Delete a specific blog', () => {
 })
 
 describe('Updating a blog', () => {
-  beforeEach(async () => {
-    await Blog.deleteMany({})
-
-    const blogObjects = helper.initialBlogs
-      .map(blog => new Blog(blog))
-    const promiseArray = blogObjects.map(blog => blog.save())
-    await Promise.all(promiseArray)
-  })
-
-  test('Update blog with valid data', async () => {
+  test('Update blog with valid data and authorization', async () => {
+    const login = await doLogin('viet')
     const blogsDataBefore = await helper.blogsInDb()
     const firstBlog = blogsDataBefore[0]
     // console.log('before', blogsDataBefore[0])
@@ -306,6 +373,7 @@ describe('Updating a blog', () => {
 
     await api
       .put(`/api/blogs/${firstBlog.id}`)
+      .set('Authorization', `bearer ${login.token}`)
       .send(updateData)
       .expect(200)
 
@@ -316,7 +384,31 @@ describe('Updating a blog', () => {
     expect(blogsDataCurrent[0].title).toEqual('updated title')
   })
 
+  test('Update blog with valid data withou authorization', async () => {
+    const login = await doLogin('root')
+    const blogsDataBefore = await helper.blogsInDb()
+    const firstBlog = blogsDataBefore[0]
+    // console.log('before', blogsDataBefore[0])
+    const updateData = {
+      likes: firstBlog.likes + 1,
+      title: 'updated title'
+    }
+
+    await api
+      .put(`/api/blogs/${firstBlog.id}`)
+      .set('Authorization', `bearer ${login.token}`)
+      .send(updateData)
+      .expect(401)
+
+    const blogsDataCurrent = await helper.blogsInDb()
+    // console.log('after', blogsDataCurrent[0])
+    expect(blogsDataCurrent.length).toBe(helper.initialBlogs.length)
+    expect(blogsDataCurrent[0].likes).toBe(firstBlog.likes)
+    expect(blogsDataCurrent[0].title).toEqual(firstBlog.title)
+  })
+
   test('Update blog with invalid data', async () => {
+    const login = await doLogin('viet')
     const blogsDataBefore = await helper.blogsInDb()
     const firstBlog = blogsDataBefore[0]
 
@@ -328,6 +420,7 @@ describe('Updating a blog', () => {
 
     await api
       .put(`/api/blogs/${firstBlog.id}`)
+      .set('Authorization', `bearer ${login.token}`)
       .send(updateData)
       .expect(400)  // bad request
 
@@ -341,6 +434,7 @@ describe('Updating a blog', () => {
   })
 
   test('Update blog with invalid id', async () => {
+    const login = await doLogin('viet')
     const invalidId = 'abc123'
     const updateData = {
       likes: 1,
@@ -350,6 +444,7 @@ describe('Updating a blog', () => {
 
     await api
       .put(`/api/blogs/${invalidId}`)
+      .set('Authorization', `bearer ${login.token}`)
       .send(updateData)
       .expect(400)  // bad request
 
@@ -358,6 +453,7 @@ describe('Updating a blog', () => {
   })
 
   test('Update blog with valid id but already removed', async () => {
+    const login = await doLogin('viet')
     const nonExistingId = helper.nonExistingId()
     const updateData = {
       likes: 1,
@@ -367,6 +463,7 @@ describe('Updating a blog', () => {
 
     await api
       .put(`/api/blogs/${nonExistingId}`)
+      .set('Authorization', `bearer ${login.token}`)
       .send(updateData)
       .expect(400)
 
@@ -376,18 +473,6 @@ describe('Updating a blog', () => {
 })
 
 describe('Saving to and getting initial users from database', () => {
-  beforeEach(async () => {
-    await User.deleteMany({})
-
-    const passwordHash = await bcrypt.hash('12345678', 10)
-    const user = new User({ username: 'root', passwordHash, name: 'Admin' })
-    await user.save()
-
-    const passwordHash2 = await bcrypt.hash('12345678', 10)
-    const user2 = new User({ username: 'viet', passwordHash: passwordHash2, name: 'Viet Phan' })
-    await user2.save()
-  })
-
   test('Test15a: users are returned as json', async (done) => {
     await api
       .get('/api/users')

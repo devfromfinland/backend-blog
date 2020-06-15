@@ -8,6 +8,11 @@ usersRouter.get('/', async (request, response) => {
   response.json(users)
 })
 
+usersRouter.get('/:username', async (request, response) => {
+  const user = await User.find({ username: request.params.username })
+  response.json(user)
+})
+
 usersRouter.post('/', async (request, response) => {
   // const body = request.body
   const { username, password, name } = request.body
