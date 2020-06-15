@@ -2,8 +2,9 @@ POST http://localhost:3003/api/blogs
 Content-Type: application/json
 
 {
-  "title": "new one",
-  "author": "Viet Phan",
-  "url": "https://test.com/steve2",
-  "likes": 0
+  "title": "Second blog",
+  "author": "Admin",
+  "url": "https://test.com/admin",
+  "likes": 0,
+  "user": "5ee792826a5574525043d398"
 }
