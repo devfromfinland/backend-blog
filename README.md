@@ -6,7 +6,7 @@ This is the back-end of a Blog app. Features include:
 
 ## To config:
 Add these 4 suitable environment varibales in your case 
-``MONGODB_URI`` database link, something link this `mongodb+srv://[username]:[password]@cluster0-jcavg.mongodb.net/bloglist?retryWrites=true`
+``MONGODB_URI`` database link, something like this `mongodb+srv://[username]:[password]@cluster0-jcavg.mongodb.net/bloglist?retryWrites=true`
 ``MONGODB_URI_TEST`` similar database but for testing purpose
 ``PORT`` port for running server locally
 ``SECRET`` any string to add into the authentication
