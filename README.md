@@ -5,7 +5,7 @@ This is the back-end of a Blog app. Features include:
 - Keep data in a server database (MongoDB)
 
 ## To config:
-Add these 4 suitable environment varibales in your case 
+Add these 4 suitable environment variables in your case 
 
 1. ``MONGODB_URI`` database link, something like this `mongodb+srv://[username]:[password]@cluster0-jcavg.mongodb.net/bloglist?retryWrites=true`
 2. ``MONGODB_URI_TEST`` similar database but for testing purpose
