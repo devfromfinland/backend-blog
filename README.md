@@ -22,6 +22,7 @@ Add these 4 suitable environment variables in your case
 
 ## To run test for development purpose (jest environment)
 ``npm test`` run the whole test
+
 ``npm test -- -t TESTCODE`` run individual test based on TESTCODE (which are bold below)
 sample requests are placed under the `requests` folder
 
