@@ -1,11 +1,10 @@
 POST http://localhost:3003/api/blogs
 Content-Type: application/json
-Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InJvb3QiLCJpZCI6IjVlZTc5MjgyNmE1NTc0NTI1MDQzZDM5NyIsImlhdCI6MTU5MjI1MTkxNn0.sMIerxff-pNj5yizr6s1G_NG0iSPv8yvs47lgDAQES4
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InZpZXQiLCJpZCI6IjVlZTg4ZjZjMDYxZmE4MDQwY2VkN2Y5ZiIsImlhdCI6MTU5MjI5OTQzNn0.L-7bjqOs45tAFjpPpP5jIuviLJ1AGUEOoN7DDlKFKs0
 
 {
   "title": "Fifth blog",
-  "author": "Admin",
+  "author": "Viet Phan",
   "url": "https://test.com/viet55",
-  "likes": 0,
-  "user": "5ee792826a5574525043d397"
+  "likes": 0
 }

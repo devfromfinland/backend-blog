@@ -1,3 +1,9 @@
+/**
+ * @intructions
+ * Run the whole test: npm test
+ * Run individual test: npm test -- -t TESTCODE
+ * Check @README for a list of TESTCODE
+ */
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const bcrypt = require('bcrypt')
@@ -8,10 +14,13 @@ const User = require('../models/user')
 const Blog = require('../models/blog')
 const helper = require('./test_helper')
 
-const doLogin = async (username) => {
+// return: { token, username, name } and decoded token: { username, id }
+const doLogin = async (username, password = null) => {
   const credentials = {
     username: username,
-    password: '12345678'
+    password: password
+      ? password
+      : '12345678' // this password goes with initial users ('root' and 'viet')
   }
 
   const res = await api
@@ -22,6 +31,7 @@ const doLogin = async (username) => {
   return res.body
 }
 
+// return: { id, username, name, blogs }
 const getUser = async (username) => {
   const response = await api
     .get(`/api/users/${username}`)
@@ -29,8 +39,12 @@ const getUser = async (username) => {
   return response.body[0]
 }
 
+// init same database before each test for consistency
+// init 2 users ('root' and 'viet') to database, default password: '12345678'
+// init 6 blogs to database, and assign user 'viet' as the owner of all 6 blogs
+// user 'viet' is the owner of 6 blogs
 beforeEach(async () => {
-  // init 2 users (root and viet) to database
+  // init 2 users ('root' and 'viet') to database, default password: '12345678'
   await User.deleteMany({})
   const passwordHash = await bcrypt.hash('12345678', 10)
   const user = new User({ username: 'root', passwordHash, name: 'Admin' })
@@ -45,7 +59,7 @@ beforeEach(async () => {
   const blogObjects = helper.initialBlogs
     .map(blog => new Blog({ ...blog, user: savedUser2._id }))
   const promiseBlogsArray = blogObjects.map(blog => blog.save())
-  await Promise.all(promiseBlogsArray)
+  await Promise.all(promiseBlogsArray)  // this can't guarantee the order of database
 
   // assign all 6 blogs to user 'viet' and update
   const blogIds = (await helper.blogsInDb()).map(blog => blog.id)
@@ -67,18 +81,17 @@ describe('Saving and getting initial blogs to database', () => {
     expect(response.body).toHaveLength(helper.initialBlogs.length)
   })
 
-  test('Test08c: the first blog is about React patterns', async () => {
-    const response = await api.get('/api/blogs')
-    expect(response.body[0].title).toBe('React patterns')
-  })
+  // test('Test08c: the first blog is about React patterns', async () => {
+  //   const response = await api.get('/api/blogs')
+  //   const titles = response.body.map(blog => blog.title)
+  //   console.log(titles)
+  //   expect(titles[0]).toBe('React patterns')
+  // })
 
   test('Test08d: a specific blog title is within the returned blogs', async () => {
     const response = await api.get('/api/blogs')
     const titles = response.body.map(r => r.title)
-
-    expect(titles).toContain(
-      'First class tests'
-    )
+    expect(titles).toContain('First class tests')
   })
 
   test('Test09: unique identifier is id instead of _id', async () => {
