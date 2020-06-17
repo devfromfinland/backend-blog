@@ -87,11 +87,11 @@ blogsRouter.put('/:id', async (request, response) => {
   }
 
   let blog = await Blog.findById(id)
-
+  // console.log('currentBlog', blog)
   if (blog) {
-    if (blog.user.toString() !== decodedToken.id) {
-      return response.status(401).json({ error: 'token invalid, unauthorized action' })
-    }
+    // if (blog.user.toString() !== decodedToken.id) {
+    //   return response.status(401).json({ error: 'token invalid, unauthorized action' })
+    // }
 
     title ? blog.title = title : null
     author ? blog.author = author : null
@@ -100,6 +100,7 @@ blogsRouter.put('/:id', async (request, response) => {
 
     // send to server
     const updatedBlog = await blog.save()
+    // console.log('updatedBlog', updatedBlog)
     response.json(updatedBlog)
   }
 })
