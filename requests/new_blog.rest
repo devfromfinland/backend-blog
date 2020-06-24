@@ -1,6 +1,6 @@
-POST http://localhost:3003/api/blogs
+POST http://localhost:3001/api/blogs
 Content-Type: application/json
-Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InZpZXQiLCJpZCI6IjVlZTg4ZjZjMDYxZmE4MDQwY2VkN2Y5ZiIsImlhdCI6MTU5MjI5OTQzNn0.L-7bjqOs45tAFjpPpP5jIuviLJ1AGUEOoN7DDlKFKs0
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InZpZXQiLCJpZCI6IjVlZjI1YjFjNDcyN2MzNTIzMGI2ZTRhZiIsImlhdCI6MTU5Mjk0MTQwMH0.ZSVrZZGmaktUdj_xTcPmqP3lb6LmqwSDWPeTyLQS6xU
 
 {
   "title": "Fifth blog",
