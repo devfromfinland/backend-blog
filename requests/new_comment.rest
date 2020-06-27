@@ -1,10 +1,7 @@
-POST http://localhost:3001/api/blogs
+POST http://localhost:3001/api/blogs/5ee8e58118b87c261830d3d2/comments
 Content-Type: application/json
 Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InZpZXQiLCJpZCI6IjVlZTg4ZjZjMDYxZmE4MDQwY2VkN2Y5ZiIsImlhdCI6MTU5MzI5Njc1NX0.Ln9qyBSYB2-pc6LwUXLW3HVzcX0wNLCxaAtCF4w4eFQ
 
 {
-  "title": "Fifth blog",
-  "author": "Viet Phan",
-  "url": "https://test.com/viet55",
-  "likes": 0
+  "comment": "new request"
 }
